@@ -4,11 +4,14 @@ from functools import partial
 class GetIntermediateLayer(Base):
     def __init__(self):
         super().__init__()
-        self.output = {}
+        self.profile = {}
     
     def hook_fn(self, module, name):
         def hook(m ,i, o):
-            self.output[name] = o
+            self.profile[name] = {}
+            self.profile[name]['module'] = m
+            self.profile[name]['input'] = i[0]
+            self.profile[name]['output'] = o
         module.register_forward_hook(hook)
 
     def register_forward_hook(self, model, layer_list):

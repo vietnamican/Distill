@@ -1,3 +1,4 @@
+import torch
 from torch import optim
 
 from .base import Base
@@ -23,35 +24,44 @@ class Distill(Base):
         self.freeze_with_prefix('teacher')
 
     def forward(self, x):
-        self.teacher(x)
-        self.student(x)
-        return self.teacher_features_factory.output, self.student_features_factory.output
+        with torch.no_grad():
+            self.teacher(x)
+            self.student(x)
+        return self.teacher_features_factory.profile, self.student_features_factory.profile
 
     def training_step(self, batch, batch_idx):
         x, y = batch
-        teacher_outputs, student_outputs = self.forward(x)
+        teacher_profile, student_profile = self.forward(x)
         train_loss = 0
         for teacher_layer, student_layer, connector in zip(self.teacher_layer_list, self.student_layer_list, self.connectors):
-            loss = connector(
-                teacher_outputs[teacher_layer], student_outputs[student_layer])
+            teacher_output = teacher_profile[teacher_layer]['module'](
+                teacher_profile[teacher_layer]['input'])
+            student_output = student_profile[student_layer]['module'](
+                student_profile[student_layer]['input'])
+            loss = connector(teacher_output, student_output)
             self.log("train_{}".format(teacher_layer), loss)
             train_loss += loss
         return train_loss
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
-        teacher_outputs, student_outputs = self.forward(x)
-        val_loss = 0
+        teacher_profile, student_profile = self.forward(x)
+        val_Loss = 0
         for teacher_layer, student_layer, connector in zip(self.teacher_layer_list, self.student_layer_list, self.connectors):
-            loss = connector(
-                teacher_outputs[teacher_layer], student_outputs[student_layer])
+            teacher_output = teacher_profile[teacher_layer]['module'](
+                teacher_profile[teacher_layer]['input'])
+            student_output = student_profile[student_layer]['module'](
+                student_profile[student_layer]['input'])
+            loss = connector(teacher_output, student_output)
             self.log("val_{}".format(teacher_layer), loss)
-            val_loss += loss
-        return val_loss
+            val_Loss += loss
+        return val_Loss
 
     def configure_optimizers(self):
         max_epochs = self.config.max_epochs
         steps = [step*max_epochs for step in self.config.steps]
-        optimizer = optim.SGD(self.student.parameters(), lr=0.001, momentum=0.9, weight_decay=5e-4)
-        lr_scheduler = optim.lr_scheduler.MultiStepLR(optimizer, steps, gamma=0.1)
+        optimizer = optim.SGD(self.student.parameters(),
+                              lr=0.001, momentum=0.9, weight_decay=5e-4)
+        lr_scheduler = optim.lr_scheduler.MultiStepLR(
+            optimizer, steps, gamma=0.1)
         return [optimizer], [lr_scheduler]
