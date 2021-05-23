@@ -1,5 +1,6 @@
-from .base import Base
 from functools import partial
+
+from .base import Base
 
 class GetIntermediateLayer(Base):
     def __init__(self):

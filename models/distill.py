@@ -34,10 +34,11 @@ class Distill(Base):
         teacher_profile, student_profile = self.forward(x)
         train_loss = 0
         for teacher_layer, student_layer, connector in zip(self.teacher_layer_list, self.student_layer_list, self.connectors):
-            teacher_output = teacher_profile[teacher_layer]['module'](
-                teacher_profile[teacher_layer]['input'])
-            student_output = student_profile[student_layer]['module'](
-                student_profile[student_layer]['input'])
+            shared_input = teacher_profile[teacher_layer]['input']
+            teacher_module = teacher_profile[teacher_layer]['module']
+            student_module = student_profile[student_layer]['module']
+            teacher_output = teacher_module(shared_input)
+            student_output = student_module(shared_input)
             loss = connector(teacher_output, student_output)
             self.log("train_{}".format(teacher_layer), loss)
             train_loss += loss
@@ -48,10 +49,11 @@ class Distill(Base):
         teacher_profile, student_profile = self.forward(x)
         val_Loss = 0
         for teacher_layer, student_layer, connector in zip(self.teacher_layer_list, self.student_layer_list, self.connectors):
-            teacher_output = teacher_profile[teacher_layer]['module'](
-                teacher_profile[teacher_layer]['input'])
-            student_output = student_profile[student_layer]['module'](
-                student_profile[student_layer]['input'])
+            shared_input = teacher_profile[teacher_layer]['input']
+            teacher_module = teacher_profile[teacher_layer]['module']
+            student_module = student_profile[student_layer]['module']
+            teacher_output = teacher_module(shared_input)
+            student_output = student_module(shared_input)
             loss = connector(teacher_output, student_output)
             self.log("val_{}".format(teacher_layer), loss)
             val_Loss += loss
@@ -61,7 +63,7 @@ class Distill(Base):
         max_epochs = self.config.max_epochs
         steps = [step*max_epochs for step in self.config.steps]
         optimizer = optim.SGD(self.student.parameters(),
-                              lr=0.001, momentum=0.9, weight_decay=5e-4)
+                              lr=0.01, momentum=0.9, weight_decay=5e-4)
         lr_scheduler = optim.lr_scheduler.MultiStepLR(
             optimizer, steps, gamma=0.1)
         return [optimizer], [lr_scheduler]

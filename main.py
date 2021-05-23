@@ -29,26 +29,26 @@ if __name__ == '__main__':
     val_loader = DataLoader(val_dataset, batch_size=config.val_batch_size,
                             pin_memory=True, shuffle=False, num_workers=config.num_workers)
     teacher_layers = [
-        # 'features.0.0',
-        # 'features.1.block.0.0',
-        # 'features.1.block.1.0',
-        # 'features.2.block.0.0',
-        # 'features.2.block.1.0',
+        'features.0.0',
+        'features.1.block.0.0',
+        'features.1.block.1.0',
+        'features.2.block.0.0',
+        'features.2.block.1.0',
         'features.2.block.2.0',
-        # 'features.3.block.0.0',
-        # 'features.3.block.1.0',
+        'features.3.block.0.0',
+        'features.3.block.1.0',
         'features.3.block.2.0',
     ]
 
     student_layers = [
-        # 'features.0.0',
-        # 'features.1.block.0.0',
-        # 'features.1.block.1.0',
-        # 'features.2.block.0.0',
-        # 'features.2.block.1.0',
+        'features.0.0',
+        'features.1.block.0.0',
+        'features.1.block.1.0',
+        'features.2.block.0.0',
+        'features.2.block.1.0',
         'features.2.block.2.0',
-        # 'features.3.block.0.0',
-        # 'features.3.block.1.0',
+        'features.3.block.0.0',
+        'features.3.block.1.0',
         'features.3.block.2.0',
     ]
 
@@ -57,8 +57,9 @@ if __name__ == '__main__':
     trainer = pl.Trainer(
         weights_summary=None,
         gpus=1,
-        # max_epochs=1,
-        # limit_train_batches=0.1
+        max_epochs=1,
+        limit_train_batches=0.1
     )
     trainer.fit(distill_model, train_loader, val_loader)
     print(torch.allclose(teacher_model.features[2].block[1][0].weight, student_model.features[2].block[1][0].weight))
+    print((teacher_model.features[2].block[1][0].weight- student_model.features[2].block[1][0].weight).sum())
